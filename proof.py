@@ -66,16 +66,25 @@ def reconstruct_proofs(left, term, proof_of_left, backtrack):
                     yield proof_of_rhs + [left + [term]]
 
 def print_proofs(iterable_of_proofs):
+    f = open('output/index.html', 'w')
     for idx, proof in enumerate(iterable_of_proofs):
+        f.write('<div style="display: inline-block; padding: 30px; border-right: 1px solid grey;">\n')
+        f.write('<h3>Proof {}</h3>\n'.format(idx))
         print('---- Proof {} -----'.format(idx))
-        for step in proof:
+        for j, step in enumerate(proof):
             print('  '.join(str(term) for term in step))
+            name = 'img/{}-{}'.format(idx, j)
+            RBG.to_graphs(step, 'output/'+name)
+            f.write('<img src="{}.png" /><br />\n'.format(name))
+        f.write('</div>\n')
         print
+    f.close()
 
 if __name__ == '__main__':
     import sys
+    mygraph = B(R(b,B(R(b,B(R(b,b),r,r)),r)),r)
     backtrack = enumerate_proofs(int(sys.argv[1]))
-    proofs = reconstruct_proofs([], triple_unit, [], backtrack)
+    proofs = reconstruct_proofs([], mygraph, [], backtrack)
     print_proofs(proofs)
 
 

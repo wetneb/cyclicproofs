@@ -76,13 +76,9 @@ class RBG(object):
         if len(left_list) + len(right_list) == 1:
             # simplify red unitality
             red_fragment = sum(left_list, RBG()) + sum(right_list, RBG())
-        #print('red fragment')
-        #print(red_fragment)
 
         blue_left = self[i+j,len(self)-j]
         blue_right = other[k+l,len(other)-l]
-        #print('blue lists')
-        #print(blue_right + blue_left)
         return red_fragment + blue_right + blue_left
 
     def __repr__(self, start_color='B'):
@@ -92,3 +88,31 @@ class RBG(object):
             return '{}({})'.format(start_color,
                     ','.join(c.__repr__('R' if start_color=='B' else 'B')
                     for c in self.children))
+
+    def to_graph(self, fname):
+        import graphviz as gv
+        g = gv.Graph()
+        self._fill_graph(g, blue=True, idx_start=0)
+        g.render(fname)
+
+    def _fill_graph(self, graph, blue, idx_start):
+        bgcolor = '#0000ff' if blue else '#ff0000'
+        graph.node(str(idx_start), label='', color=bgcolor)
+        cur_idx = idx_start + 1
+        for child in self.children:
+            graph.edge(str(idx_start), str(cur_idx))
+            cur_idx = child._fill_graph(graph, not blue, cur_idx)
+        
+        return cur_idx
+
+    @classmethod
+    def to_graphs(cls, lst, name):
+        import graphviz as gv
+        g = gv.Graph()
+        g.attr('node', shape='circle', style='filled', heigth='0.07', width='0.07', fixedsize='true')
+        idx = 0
+        for t in lst:
+            idx = t._fill_graph(g, blue=True, idx_start=idx)
+        g.format = 'png'
+        #print(g.source)
+        g.render(filename=name)
