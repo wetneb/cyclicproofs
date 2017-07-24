@@ -51,19 +51,34 @@ def enumerate_proofs(limit):
             print('{}\t{}'.format(count,term))
     return backtrack
 
+class ProofStep(object):
+    def __init__(self, terms):
+        self.terms = terms
+
+class UnitAxiom(ProofStep):
+    def __repr__(self):
+        return "unit"
+
+class MergeStep(ProofStep):
+    def __init__(self, terms, coords):
+        super(MergeStep, self).__init__(terms)
+        self.coords = coords
+    def __repr__(self):
+        return "merge at {}".format(self.coords)
+
 def reconstruct_proofs(left, term, proof_of_left, backtrack):
     """
     Prints all proofs of a given term, at the context [left, X, right]
     """
     if term == B(r):
-        yield proof_of_left + [left + [term]]
+        yield proof_of_left + [UnitAxiom(left + [term])]
     else:
         for lhs,rhs,i,j,k,l in backtrack[term]:
             proofs_of_lhs = reconstruct_proofs(left, lhs, proof_of_left, backtrack)
             for proof_of_lhs in proofs_of_lhs:
                 proofs_of_rhs = reconstruct_proofs(left + [lhs], rhs, proof_of_lhs, backtrack)
                 for proof_of_rhs in proofs_of_rhs:
-                    yield proof_of_rhs + [left + [term]]
+                    yield proof_of_rhs + [MergeStep(left + [term], (i,j,k,l))]
 
 def print_proofs(iterable_of_proofs):
     f = open('output/index.html', 'w')
@@ -72,9 +87,10 @@ def print_proofs(iterable_of_proofs):
         f.write('<h3>Proof {}</h3>\n'.format(idx))
         print('---- Proof {} -----'.format(idx))
         for j, step in enumerate(proof):
-            print('  '.join(str(term) for term in step))
+            print('  '.join(str(term) for term in step.terms))
             name = 'img/{}-{}'.format(idx, j)
-            RBG.to_graphs(step, 'output/'+name)
+            RBG.to_graphs(step.terms, 'output/'+name)
+            f.write('<p>{}</p>'.format(step))
             f.write('<img src="{}.png" /><br />\n'.format(name))
         f.write('</div>\n')
         print
