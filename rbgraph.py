@@ -23,17 +23,24 @@ class RBG(object):
     def __len__(self):
         return len(self.children)
 
-    def __eq__(self, other):
+    def __eq__(self, other, cyclic=True):
         if self.size != other.size:
             return False
 
         # try to match self to other
         if len(self) != len(other):
             return False
-        # try all the possible offsets
-        for offset in range(len(self)):
+        if cyclic:
+            # if matching in cyclic mode,
+            # try all the possible offsets
+            offsets = range(len(self))
+        else:
+            # otherwise, just zero
+            offsets = [0]
+
+        for offset in offsets:
             matching = all(
-                self[i] == other[i+offset]
+                self[i].__eq__(other[i+offset], cyclic=False)
                 for i in range(len(self))
             )
             if matching:
@@ -102,7 +109,7 @@ class RBG(object):
         for child in self.children:
             graph.edge(str(idx_start), str(cur_idx))
             cur_idx = child._fill_graph(graph, not blue, cur_idx)
-        
+
         return cur_idx
 
     @classmethod

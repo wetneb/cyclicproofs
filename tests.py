@@ -44,7 +44,7 @@ class RBGTest(unittest.TestCase):
         double_unit = unit.merge(gadget, 0, 0, 1, 2)
         self.assertEqual(double_unit, B(R(b,B(r,r)),R(b,b),r))
         # we are cyclic, not commutative, so equality fails here
-        self.assertNotEqual(double_unit, B(R(b,B(r,r)),R(b,b),r))
+        self.assertNotEqual(double_unit, B(R(B(r,r),b),R(b,b),r))
         triple_unit = double_unit.merge(unit, 1, 2)
         self.assertEqual(triple_unit,
             B(R(B(R(b,b),r),b),r,R(b,B(r,r))))
@@ -58,3 +58,10 @@ class RBGTest(unittest.TestCase):
 
         # checking unit counts
         self.assertEqual(triple_unit.units(), 4)
+
+    def test_order(self):
+        unit = B(r)
+        gadget = unit.merge(unit)
+        weird1 = unit.merge(gadget, 0, 0, 0, 3)
+        weird2 = unit.merge(gadget, 0, 0, 1, 3)
+        self.assertNotEqual(weird1, weird2)
