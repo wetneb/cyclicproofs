@@ -1,28 +1,21 @@
 import unittest
 
-from rbgraph import RBG
-
-G = RBG
-R = RBG
-B = RBG
-r = R()
-b = B()
+from rbgraph import RBG, R, B, r, b
+from proofstep import UnitAxiom, MergeStep
 
 class RBGTest(unittest.TestCase):
     def test_simple_equality(self):
-        self.assertEqual(G(), G())
-        g = G()
-        self.assertEqual(G(g), G(g))
-        self.assertNotEqual(G(), G(g))
-        self.assertNotEqual(G(g), G(g,g))
-        self.assertEqual(G(g,g,G(g,g)), G(g,G(g,g),g))
+        self.assertEqual(B(), B())
+        self.assertEqual(B(r), R(b))
+        self.assertNotEqual(B(), B(r))
+        self.assertNotEqual(B(r), B(r,r))
+        self.assertEqual(B(r,r,R(b,b)), B(r,R(b,b),r))
 
     def test_merge(self):
         # creating a gadget
-        g = G()
-        unit = G(g)
+        unit = R(b)
         gadget = unit.merge(unit)
-        self.assertEqual(G(g, G(g,g), g), gadget)
+        self.assertEqual(B(r, R(b,b), r), gadget)
         unit_again = unit.merge(unit, 0, 1, 0, 1)
         self.assertEqual(unit_again, unit)
 
@@ -65,3 +58,11 @@ class RBGTest(unittest.TestCase):
         weird1 = unit.merge(gadget, 0, 0, 0, 3)
         weird2 = unit.merge(gadget, 0, 0, 1, 3)
         self.assertNotEqual(weird1, weird2)
+
+class ProofStepTest(unittest.TestCase):
+    def test_commutes_with_previous_unit(self):
+        parent = [B(r),B(r)]
+        firststep = MergeStep.from_parent(parent, 0, (0,0,0,0))
+        secondstep = UnitAxiom.from_parent(firststep.terms, 1)
+        commutation = list(secondstep.commutes_with_previous(firststep, parent))
+        self.assertEqual(commutation, [[UnitAxiom([B(r),B(r),B(r)],2),MergeStep([B(r,R(b,b),r),B(r),B(r)], 0, (0,0,0,0))]])

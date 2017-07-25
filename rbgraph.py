@@ -88,6 +88,14 @@ class RBG(object):
         blue_right = other[k+l,len(other)-l]
         return red_fragment + blue_right + blue_left
 
+    def possible_merges(self, rhs):
+        for i in range(len(self)):
+            for j in range(len(self)+1):
+                for k in range(len(rhs)):
+                    for l in range(len(rhs)+1):
+                        term = self.merge(rhs,i,j,k,l)
+                        yield (term,i,j,k,l)
+
     def __repr__(self, start_color='B'):
         if len(self) == 0:
             return start_color.lower()
@@ -123,3 +131,9 @@ class RBG(object):
         g.format = 'png'
         #print(g.source)
         g.render(filename=name)
+
+
+R = RBG
+B = RBG
+b = B()
+r = R()
