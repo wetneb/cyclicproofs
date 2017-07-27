@@ -2,6 +2,7 @@ import unittest
 
 from rbgraph import RBG, R, B, r, b
 from proofstep import UnitAxiom, MergeStep
+from proof import Proof
 
 class RBGTest(unittest.TestCase):
     def test_simple_equality(self):
@@ -89,4 +90,16 @@ class ProofStepTest(unittest.TestCase):
               [(firststep2, secondstep2)])
              
 class ProofTest(unittest.TestCase):
-    pass
+    def test_neighbours(self):
+        p1 = Proof().unit().unit()
+        p2 = Proof().unit().unit(1)
+        neighbours = list(p1.neighbours())
+        self.assertEqual([p2], neighbours)
+
+        pu = Proof().unit()
+        self.assertEqual([], list(pu.neighbours()))
+
+    def test_equivalence_class(self):
+        p3 = Proof().unit().unit().unit().unit()
+        eq_class = list(p3.equivalence_class())
+        self.assertEqual(len(eq_class), 24)
