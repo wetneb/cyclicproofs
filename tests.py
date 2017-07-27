@@ -65,4 +65,28 @@ class ProofStepTest(unittest.TestCase):
         firststep = MergeStep.from_parent(parent, 0, (0,0,0,0))
         secondstep = UnitAxiom.from_parent(firststep.terms, 1)
         commutation = list(secondstep.commutes_with_previous(firststep, parent))
-        self.assertEqual(commutation, [[UnitAxiom([B(r),B(r),B(r)],2),MergeStep([B(r,R(b,b),r),B(r),B(r)], 0, (0,0,0,0))]])
+        self.assertEqual(commutation,
+            [[UnitAxiom([B(r),B(r),B(r)],2),MergeStep([B(r,R(b,b),r),B(r)], 0, (0,0,0,0))]])
+
+    def test_commutes_with_previous_merge(self):
+        parent = [B(r),B(r),B(r)]
+        firststep = MergeStep.from_parent(parent, 0, (0,0,0,0))
+        secondstep = MergeStep.from_parent(firststep.terms, 0, (0,1,0,0))
+        firststep2 = MergeStep.from_parent(parent, 1, (0,0,0,0))
+        secondstep2 = MergeStep.from_parent(firststep2.terms, 0, (0,0,0,1))
+        commutation = list(secondstep.commutes_with_previous(firststep, parent))
+        self.assertEqual(commutation,
+              [[firststep2, secondstep2]])
+
+    def test_exchange_merges(self):
+        parent = [B(r),B(r),B(r),B(r)]
+        firststep = MergeStep.from_parent(parent, 0, (0,0,0,0))
+        secondstep = MergeStep.from_parent(firststep.terms, 1, (0,0,0,0))
+        firststep2 = MergeStep.from_parent(parent, 2, (0,0,0,0))
+        secondstep2 = MergeStep.from_parent(firststep2.terms, 0, (0,0,0,0))
+        commutation = list(secondstep.commutes_with_previous(firststep, parent))
+        self.assertEqual(commutation,
+              [[firststep2, secondstep2]])
+             
+class ProofTest(unittest.TestCase):
+    pass

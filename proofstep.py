@@ -5,13 +5,13 @@ class ProofStep(object):
         self.terms = terms
         self.position = position
 
-    def commutes_with_previous(self, proofstep, parent_terms):
+    def commutes_with_previous(self, previous, parent_terms):
         """
-        Given the previous proof step "proofstep",
+        Given the previous proof step "previous",
         can we commute the two?
 
         If so, returns the commuted proof sequence
-        as a two-element list.
+        as a pair.
         """
         raise NotImplemented
 
@@ -23,21 +23,21 @@ class ProofStep(object):
 
 class UnitAxiom(ProofStep):
     def __repr__(self):
-        return "unit"
+        return "unit[{}]".format(self.position)
 
-    def commutes_with_previous(self, proofstep, parent_terms):
-        pp = proofstep.position
-        secondstep = proofstep.copy()
-        secondstep.terms = self.terms
+    def commutes_with_previous(self, previous, parent_terms):
+        pp = previous.position
+        secondstep = previous.copy()
+        secondstep.terms = [t for t in self.terms]
         if self.position <= pp:
             firststep_offset = 0
             secondstep.position += 1
         else:
-            firststep_offset = proofstep.number_of_premises()-1
+            firststep_offset = previous.number_of_premises()-1
             
         p = self.position + firststep_offset
         firststep = UnitAxiom(parent_terms[:p] + [B(r)] + parent_terms[p:],
-                        self.position)
+                        p)
         yield [firststep, secondstep]
 
     def number_of_premises(self):
@@ -50,6 +50,11 @@ class UnitAxiom(ProofStep):
     def copy(self):
         return UnitAxiom(self.terms, self.position)
 
+    def __eq__(self, other):
+        return (isinstance(other, UnitAxiom) and
+                other.terms == self.terms and
+                other.position == self.position)
+
 
 class MergeStep(ProofStep):
     def __init__(self, terms, position, coords):
@@ -57,25 +62,25 @@ class MergeStep(ProofStep):
         self.coords = coords
 
     def __repr__(self):
-        return "merge {} at {}".format(self.position, self.coords)
+        return "merge[{}] at {}".format(self.position, self.coords)
 
-    def commutes_with_previous(self, proofstep, parent_terms):
-        pp = proofstep.position
-        secondstep = proofstep.copy()
+    def commutes_with_previous(self, previous, parent_terms):
+        secondstep = previous.copy()
         secondstep.terms = self.terms
-        if pp.position < self.position:
+        i,j,k,l = self.coords
+        if previous.position < self.position:
             # This is a simple exchange
-            firststep_pos = self.position + proofstep.number_of_premises()-1
+            firststep_pos = self.position + previous.number_of_premises()-1
             lhs = parent_terms[firststep_pos]
             rhs = parent_terms[firststep_pos+1]
-            firststep = MergeStep(parent_terms[:firststep_pos] + [lhs.merge(rhs,self.coords)] +
+            firststep = MergeStep(parent_terms[:firststep_pos] + [lhs.merge(rhs,i,j,k,l)] +
                                   parent_terms[firststep_pos+2:], firststep_pos, self.coords)
             yield [firststep, secondstep]
-        elif pp.position > self.position+1:
+        elif previous.position > self.position+1:
             # This is also a simple exchange
             lhs = parent_terms[self.position]
             rhs = parent_terms[self.position+1]
-            firststep = MergeStep(parent_terms[:self.position] + [lhs.merge(rhs,self.coords)] +
+            firststep = MergeStep(parent_terms[:self.position] + [lhs.merge(rhs,i,j,k,l)] +
                                   parent_terms[self.position+2:], self.position, self.coords)
             secondstep.position += 1
             yield [firststep, secondstep]
@@ -84,25 +89,25 @@ class MergeStep(ProofStep):
 
             # We cannot permute overlapping UnitAxioms and MergeSteps
             # because we have assumed that all the merges are nontrivial
-            if isinstance(proofstep, UnitAxiom):
+            if isinstance(previous, UnitAxiom):
                 return
 
             # If we have two merges to commute, we just look for an alternative path
-            p_first_merge = self.position+1 if self.position == pp else self.position
-            p_third_term = self.position if self.position == pp else self.position+2
+            p_first_merge = self.position+1 if self.position == previous.position else self.position
+            p_third_term = self.position if self.position == previous.position else self.position+2
             a = parent_terms[p_third_term]
             b = parent_terms[p_first_merge]
             c = parent_terms[p_first_merge+1]
             target = self.terms[self.position]
-            for term,i1,j1,k1,l1 in possible_merges(b, c):
-                if self.position == pp:
-                    second_merges = possible_merges(a, term)
+            for term,i1,j1,k1,l1 in b.possible_merges(c):
+                if self.position == previous.position:
+                    second_merges = a.possible_merges(term)
                 else:
-                    second_merges = possiblel_merges(term, a)
+                    second_merges = term.possible_merges(a)
                 for candidate,i2,j2,k2,l2 in second_merges:
                     if candidate == target:
                         firststep = MergeStep(parent_terms[:p_first_merge] + [term] +
-                                              parent_terms[p_first_merge+1:], p_first_merge,
+                                              parent_terms[p_first_merge+2:], p_first_merge,
                                               (i1,j1,k1,l1))
                         secondstep = MergeStep(self.terms, self.position, (i2,j2,k2,l2))
                         yield [firststep, secondstep]
@@ -118,4 +123,10 @@ class MergeStep(ProofStep):
 
     def copy(self):
         return MergeStep(self.terms, self.position, self.coords)
+
+    def __eq__(self, other):
+        return (isinstance(other, MergeStep) and 
+                self.terms == other.terms and
+                self.coords == other.coords and
+                self.position == other.position)
 
