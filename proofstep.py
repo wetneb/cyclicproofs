@@ -28,7 +28,7 @@ class UnitAxiom(ProofStep):
     def commutes_with_previous(self, previous, parent_terms):
         pp = previous.position
         secondstep = previous.copy()
-        secondstep.terms = [t for t in self.terms]
+        secondstep.terms = self.terms
         if self.position <= pp:
             firststep_offset = 0
             secondstep.position += 1
@@ -36,16 +36,16 @@ class UnitAxiom(ProofStep):
             firststep_offset = previous.number_of_premises()-1
             
         p = self.position + firststep_offset
-        firststep = UnitAxiom(parent_terms[:p] + [B(r)] + parent_terms[p:],
+        firststep = UnitAxiom(parent_terms[:p] + (B(r),) + parent_terms[p:],
                         p)
-        yield [firststep, secondstep]
+        yield (firststep, secondstep)
 
     def number_of_premises(self):
         return 0
 
     @classmethod
     def from_parent(cls, terms, position):
-        return UnitAxiom(terms[:position] + [B(r)] + terms[position:], position)
+        return UnitAxiom(terms[:position] + (B(r),) + terms[position:], position)
 
     def copy(self):
         return UnitAxiom(self.terms, self.position)
@@ -54,6 +54,9 @@ class UnitAxiom(ProofStep):
         return (isinstance(other, UnitAxiom) and
                 other.terms == self.terms and
                 other.position == self.position)
+
+    def __hash__(self):
+        return hash((self.terms,self.position))
 
 
 class MergeStep(ProofStep):
@@ -73,17 +76,17 @@ class MergeStep(ProofStep):
             firststep_pos = self.position + previous.number_of_premises()-1
             lhs = parent_terms[firststep_pos]
             rhs = parent_terms[firststep_pos+1]
-            firststep = MergeStep(parent_terms[:firststep_pos] + [lhs.merge(rhs,i,j,k,l)] +
+            firststep = MergeStep(parent_terms[:firststep_pos] + (lhs.merge(rhs,i,j,k,l),) +
                                   parent_terms[firststep_pos+2:], firststep_pos, self.coords)
-            yield [firststep, secondstep]
+            yield (firststep, secondstep)
         elif previous.position > self.position+1:
             # This is also a simple exchange
             lhs = parent_terms[self.position]
             rhs = parent_terms[self.position+1]
-            firststep = MergeStep(parent_terms[:self.position] + [lhs.merge(rhs,i,j,k,l)] +
+            firststep = MergeStep(parent_terms[:self.position] + (lhs.merge(rhs,i,j,k,l),) +
                                   parent_terms[self.position+2:], self.position, self.coords)
             secondstep.position += 1
-            yield [firststep, secondstep]
+            yield (firststep, secondstep)
         else:
             # Here comes the tricky part
 
@@ -106,11 +109,11 @@ class MergeStep(ProofStep):
                     second_merges = term.possible_merges(a)
                 for candidate,i2,j2,k2,l2 in second_merges:
                     if candidate == target:
-                        firststep = MergeStep(parent_terms[:p_first_merge] + [term] +
+                        firststep = MergeStep(parent_terms[:p_first_merge] + (term,) +
                                               parent_terms[p_first_merge+2:], p_first_merge,
                                               (i1,j1,k1,l1))
                         secondstep = MergeStep(self.terms, self.position, (i2,j2,k2,l2))
-                        yield [firststep, secondstep]
+                        yield (firststep, secondstep)
 
     def number_of_premises(self):
         return 2
@@ -118,7 +121,7 @@ class MergeStep(ProofStep):
     @classmethod
     def from_parent(cls, terms, position, coords):
         i,j,k,l = coords
-        return MergeStep(terms[:position] + [terms[position].merge(terms[position+1], i,j,k,l)] + terms[position+2:],
+        return MergeStep(terms[:position] + (terms[position].merge(terms[position+1], i,j,k,l),) + terms[position+2:],
                         position, coords)
 
     def copy(self):
@@ -129,4 +132,7 @@ class MergeStep(ProofStep):
                 self.terms == other.terms and
                 self.coords == other.coords and
                 self.position == other.position)
+
+    def __hash__(self):
+        return hash((self.terms,self.coords,self.position))
 
