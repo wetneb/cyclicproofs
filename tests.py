@@ -101,5 +101,41 @@ class ProofTest(unittest.TestCase):
 
     def test_equivalence_class(self):
         p3 = Proof().unit().unit().unit().unit()
-        eq_class = list(p3.equivalence_class())
-        self.assertEqual(len(eq_class), 24)
+        p4 = p3.copy()
+        self.assertEqual(len(list(p3.equivalence_class())), 24)
+        # Of course this should still hold… but not if
+        # equivalence_class makes nasty side effects under the hood!
+        self.assertEqual(p3, p4)
+        self.assertEqual(len(list(p3.equivalence_class())), 24)
+
+    def test_proofs_with_two_merges(self):
+        # proofs of depth 2 should all be equivalent
+        backtrack = Proof.enumerate(2)
+        proofs = list(Proof.reconstruct((), B(R(b,b),r,r,R(b,b),r), Proof(), backtrack))
+        p0 = proofs[0]
+        equiv_class = list(p0.equivalence_class())
+        self.assertTrue(all(p in equiv_class for p in proofs))
+
+    def test_unit_removal(self):
+        p1 = Proof().unit().unit().unit()
+        p1_no_units = p1.remove_unit_intros()
+        self.assertEqual(len(p1_no_units), 0)
+        self.assertEqual(p1.conclusion, p1_no_units.hypotheses)
+
+        p2 = Proof().unit().unit().merge().unit().unit().merge(1)
+        p2_no_units = p2.remove_unit_intros()
+        self.assertEqual(len(p2_no_units), 2)
+        self.assertEqual(p2.conclusion, p2_no_units.conclusion)
+
+        # sliced proofs should still be hashable
+        self.assertEqual(type(hash(p2_no_units)), int)
+
+    def test_triple_unit(self):
+        # the triple unit problem has two non-equivalent proofs
+        backtrack = Proof.enumerate(3)
+        proofs = list(Proof.reconstruct((), B(R(B(R(b,b),r),b),r,R(b,B(r,r))), Proof(), backtrack))
+        self.assertEqual(len(proofs), 2)
+        p0 = proofs[0]
+        p1 = proofs[1]
+        self.assertFalse(p0.equivalent(p1))
+

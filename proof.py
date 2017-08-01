@@ -48,27 +48,70 @@ class Proof(object):
         """
         self.steps.append(step)
 
+    def hypotheses_at_index(self, i):
+        """
+        Returns the hypotheses of the proof step at index idx
+        """
+        return self.steps[i-1].terms if i > 0 else self.hyp
+
+    def remove_unit_intros(self):
+        """
+        Moves all the unit introductions to the top and returns
+        the proof starting when all units have been introduced.
+        """
+
+        # First, lift all the units to the top, bubble-sort style
+        merge_unit_found = True
+        current_proof = self.copy()
+        while merge_unit_found:
+            merge_unit_found = False
+            first_merge_index = len(self)
+            for i in range(len(current_proof.steps)-1):
+                a = current_proof.steps[i]
+                b = current_proof.steps[i+1]
+                if isinstance(a, MergeStep) and isinstance(b, UnitAxiom):
+                    merge_unit_found = True
+                    commutation = list(b.commutes_with_previous(a,
+                            current_proof.hypotheses_at_index(i)))
+                    newa, newb = commutation[0]
+                    current_proof.steps[i] = newa
+                    current_proof.steps[i+1] = newb
+
+                # maintain the index of the first merge found
+                if isinstance(a, MergeStep):
+                    first_merge_index = min(first_merge_index, i)
+                elif isinstance(b, MergeStep):
+                    first_merge_index = min(first_merge_index, i+1)
+
+        # Then, remove them
+        new_hyp = current_proof.hypotheses_at_index(first_merge_index)
+        current_proof.steps = hashable_list(current_proof.steps[first_merge_index:])
+        current_proof.hyp = new_hyp
+        return current_proof
+
     def neighbours(self):
         """
         Generates all the proofs that can be obtained with just one
         step of equivalence, starting from this proof.
         """
-        for i in range(len(self.steps)-1):
+        for i in range(len(self)-1):
             first = self.steps[i]
             second = self.steps[i+1]
-            parent = self.steps[i-1].terms if i > 0 else self.hyp
+            parent = self.hypotheses_at_index(i)
             for commutation in second.commutes_with_previous(first, parent):
                 [first,second] = commutation
                 new_proof = self.copy()
-                new_proof.steps[i] = first
-                new_proof.steps[i+1] = second
+                new_proof.steps[i] = first.copy()
+                new_proof.steps[i+1] = second.copy()
                 yield new_proof
 
-    def equivalence_class(self, seen=set()):
+    def equivalence_class(self, seen=None):
         """
         Returns a generator of the equivalence class
         of the current proof
         """
+        if seen is None:
+            seen = set()
         seen.add(self)
         yield self
         for step in self.neighbours():
@@ -82,6 +125,24 @@ class Proof(object):
         """
         return other in self.equivalence_class()
 
+    def equivalence_path(self, other, seen=None):
+        """
+        Generates ane equivalence path from the other
+        to self
+        """
+        if seen is None:
+            seen = set()
+        seen.add(self)
+        if other == self:
+            return [self]
+        for step in self.neighbours():
+            if step in seen:
+                continue
+            path = step.equivalence_path(other, seen)
+            if path:
+                path.append(self)
+                return path
+
     def __repr__(self):
         return (
                 str(self.hyp) + '\n'+
@@ -94,8 +155,11 @@ class Proof(object):
         return (self.hyp == other.hyp and
                 self.steps == other.steps)
 
+    def __len__(self):
+        return len(self.steps)
+
     def copy(self):
-        new = Proof(self.hyp[:])
+        new = Proof(self.hyp)
         new.steps = hashable_list(self.steps[:])
         return new
 

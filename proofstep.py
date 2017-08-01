@@ -85,7 +85,7 @@ class MergeStep(ProofStep):
             rhs = parent_terms[self.position+1]
             firststep = MergeStep(parent_terms[:self.position] + (lhs.merge(rhs,i,j,k,l),) +
                                   parent_terms[self.position+2:], self.position, self.coords)
-            secondstep.position += 1
+            secondstep.position -= 1
             yield (firststep, secondstep)
         else:
             # Here comes the tricky part
