@@ -229,6 +229,9 @@ class Proof(object):
 
     def to_html(self):
         html = ''
+        name = 'img/{}'.format('-'.join(str(t) for t in self.hypotheses))
+        B.to_graphs(self.hypotheses, 'output/'+name)
+        html += '<img src="{}.png" /><br />\n'.format(name)
         for j, step in enumerate(self.steps):
             name = 'img/{}'.format('-'.join(str(t) for t in step.terms))
             B.to_graphs(step.terms, 'output/'+name)
