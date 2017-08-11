@@ -7,6 +7,10 @@ class RBG(object):
     def __init__(self, *children):
         self.children = list(children)
         self.size = 1 + sum(child.size for child in self.children)
+        # the self.links list contains pairs of indices:
+        # (i,j) means that blue unit i is linked to red unit j
+        # indices are counted just like in the to_graph function.
+        self.links = []
 
     def __getitem__(self, key):
         # our sequents are cyclic
@@ -86,7 +90,16 @@ class RBG(object):
 
         blue_left = self[i+j,len(self)-j]
         blue_right = other[k+l,len(other)-l]
-        return red_fragment + blue_right + blue_left
+
+        # TODO: handle simplification case in unit translation
+        size_red_left = red_left.number_of_nodes()
+        size_blue_right = blue_right.number_of_nodes()
+        size_other = other.number_of_nodes()
+        final_graph = red_fragment + blue_right + blue_left
+        final_graph.links = []
+        final_graph.links += self.translate_links(i, j, 2, 1 + size_other + size_red_left)
+        final_graph.links += other.translate_links(k, l, 2 + size_red_left, 1 + size_red_left + size_blue_right)
+        return final_graph
 
     def possible_merges(self, rhs):
         for i in range(len(self)):
@@ -95,6 +108,60 @@ class RBG(object):
                     for l in range(len(rhs)+1):
                         term = self.merge(rhs,i,j,k,l)
                         yield (term,i,j,k,l)
+
+    def number_of_nodes(self):
+        """
+        Returns the number of nodes in this graph
+        """
+        return 1 + sum(c.number_of_nodes()
+                for c in self.children)
+
+    def build_translation(self, i, j, offset_in, translation):
+        """
+        Populates the unit translation dictionary for the slice [i,j]
+        of this graph, with the given offset.
+        """
+        size_before_in = self[0,i].number_of_nodes()
+        cur_idx = size_before_in
+        rel_idx = 1
+        for idx in range(i,i+j):
+            if idx % len(self) == 0:
+                cur_idx = 1
+            old_idx = cur_idx
+            offset = rel_idx - size_before_in + offset_in
+            cur_idx = self[idx]._build_translation_dict(cur_idx, offset, translation)
+            rel_idx += cur_idx - old_idx
+
+    def translate_links(self, i, j, offset_in, offset_out):
+        """
+        Translates unit links to their new indices, assuming
+        that the graph is split into two regions (for a merge).
+
+        Two offsets are given for each region.
+        """
+        translation = {}
+        self.build_translation(i, j, offset_in, translation)
+        self.build_translation(i+j % len(self), len(self)-j, offset_out, translation)
+
+        return [
+            (translation[a],translation[b])
+            for a, b in self.links
+        ]
+
+    def _build_translation_dict(self, start_idx, offset, dct):
+        """
+        Adds mappings for units in this graph, assuming the first
+        unit we encounter has id start_idx+1 and should be translated with
+        the given offset.
+
+        :returns: the last id seen
+        """
+        cur_idx = start_idx + 1
+        if not self.children:
+            dct[cur_idx] = cur_idx + offset
+        for child in self.children:
+            cur_idx = child._build_translation_dict(cur_idx, offset, dct)
+        return cur_idx
 
     def __repr__(self, start_color='B'):
         if len(self) == 0:

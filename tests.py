@@ -3,6 +3,9 @@ import unittest
 from rbgraph import RBG, R, B, r, b
 from proofstep import UnitAxiom, MergeStep
 from proof import Proof
+from formula import Tens, Parr, Bot, Top
+from linking import Linking
+from switching import Switching
 
 class RBGTest(unittest.TestCase):
     def test_simple_equality(self):
@@ -138,4 +141,53 @@ class ProofTest(unittest.TestCase):
         p0 = proofs[0]
         p1 = proofs[1]
         self.assertFalse(p0.equivalent(p1))
+
+class FormulaTest(unittest.TestCase):
+    def test_parent_map(self):
+        f = Parr(Tens(Bot(), Bot()), Parr(Top(), Top()))
+        self.assertEqual(f.parent_map(),
+                {1:0, 2:1, 3:1, 4:0, 5:4, 6:4})
+
+class LinkingTest(unittest.TestCase):
+    def test_correctness(self):
+        f = Parr(Tens(Bot(),Bot()),Parr(Top(),Top()))
+        l1 = Linking(f, [(2, 5), (3, 6)])
+        self.assertTrue(l1.syntactically_valid(strict=True))
+        self.assertTrue(l1.syntactically_valid(strict=False))
+        l2 = Linking(f, [(5, 2), (3, 6)])
+        self.assertFalse(l2.syntactically_valid(strict=True))
+        self.assertFalse(l2.syntactically_valid(strict=False))
+        l3 = Linking(f, [(3, 6)])
+        self.assertFalse(l3.syntactically_valid(strict=True))
+        self.assertFalse(l3.syntactically_valid(strict=False))
+        l4 = Linking(f, [(2, 4), (3, 4)])
+        self.assertFalse(l4.syntactically_valid(strict=True))
+        self.assertTrue(l4.syntactically_valid(strict=False))
+
+    def test_enumerate_linkings(self):
+        f = Parr(Bot(),Top())
+        self.assertEqual(list(Linking.enumerate(f)), [{1:2}])
+
+        f = Parr(Tens(Bot(),Bot()),Parr(Top(),Top()))
+        self.assertEqual(len(list(Linking.enumerate(f))), 4)
+
+class SwitchingTest(unittest.TestCase):
+    def test_acyclic_and_connected(self):
+        f = Parr(Tens(Bot(),Bot()),Parr(Top(),Top()))
+        l1 = Linking(f, [(2, 5), (3, 6)])
+        s = Switching(l1, {0:True, 4:True})
+        self.assertTrue(s.acyclic_and_connected())
+        s = Switching(l1, {0:True, 4:False})
+        self.assertTrue(s.acyclic_and_connected())
+
+        # not acyclic
+        l2 = Linking(f, [(2, 5), (3, 5)])
+        s = Switching(l2, {0:True, 4:True})
+        self.assertFalse(s.acyclic_and_connected())
+
+        # not connected
+        f = Parr(Top(),Top())
+        l3 = Linking(f, [])
+        s = Switching(l3, {0:True})
+        self.assertFalse(s.acyclic_and_connected())
 
