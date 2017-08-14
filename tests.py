@@ -166,10 +166,23 @@ class LinkingTest(unittest.TestCase):
 
     def test_enumerate_linkings(self):
         f = Parr(Bot(),Top())
-        self.assertEqual(list(Linking.enumerate(f)), [{1:2}])
+        self.assertEqual([l.links for l in Linking.enumerate(f)], [[(1,2)]])
 
         f = Parr(Tens(Bot(),Bot()),Parr(Top(),Top()))
         self.assertEqual(len(list(Linking.enumerate(f))), 4)
+
+    def test_enumerate_symmetric_proofs(self):
+        f = Parr(Top(), Top())
+        proofs = list(Linking.enumerate_symmetric_proofs(f))
+        self.assertEqual(proofs, [])
+
+        f = Parr(Bot(), Top())
+        proofs = list(Linking.enumerate_symmetric_proofs(f))
+        self.assertEqual(len(proofs), 1)
+
+        f = Parr(Tens(Bot(), Bot()), Parr(Top(), Top()))
+        proofs = list(Linking.enumerate_symmetric_proofs(f))
+        self.assertEqual(len(proofs), 2)
 
 class SwitchingTest(unittest.TestCase):
     def test_acyclic_and_connected(self):
@@ -190,4 +203,11 @@ class SwitchingTest(unittest.TestCase):
         l3 = Linking(f, [])
         s = Switching(l3, {0:True})
         self.assertFalse(s.acyclic_and_connected())
+
+    def test_enumerate_switchings(self):
+        f = Parr(Tens(Bot(),Bot()),Parr(Top(),Top()))
+        l1 = Linking(f, [(2, 5), (3, 6)])
+        all_switchings = list(Switching.enumerate(l1))
+        self.assertEqual(len(all_switchings), 4)
+
 

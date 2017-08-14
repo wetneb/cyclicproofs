@@ -51,6 +51,12 @@ class Linking(object):
     def planar(self):
         raise NotImplementedError()
 
+    def is_symmetric_proof(self):
+        from switching import Switching
+        return all(
+            switch.acyclic_and_connected()
+            for switch in Switching.enumerate(self)
+        )
 
     @classmethod
     def enumerate(cls, formula):
@@ -79,6 +85,13 @@ class Linking(object):
             for j in range(l):
                 dct[bot_indices[j]] = top_indices[remainder % k]
                 remainder = remainder // k
-            yield dct
+            yield cls(formula, list(dct.items()))
 
+    @classmethod
+    def enumerate_symmetric_proofs(cls, formula):
+        return (
+            linking
+            for linking in cls.enumerate(formula)
+            if linking.is_symmetric_proof()
+        )
 

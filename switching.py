@@ -62,3 +62,19 @@ class Switching(object):
             seen.add(index)
         return len(seen) == len(self.formula)
 
+    @classmethod
+    def enumerate(cls, linking):
+        formula = linking.formula
+        parr_indices = [
+            idx
+            for idx, subformula in enumerate(formula)
+            if isinstance(subformula, Parr)
+        ]
+        bound = pow(2, len(parr_indices))
+        for i in range(bound):
+            remainder = i
+            dct = {}
+            for idx in parr_indices:
+                dct[idx] = (remainder % 2 == 1)
+                remainder // 2
+            yield cls(linking, dct)
