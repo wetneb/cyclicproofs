@@ -210,4 +210,26 @@ class SwitchingTest(unittest.TestCase):
         all_switchings = list(Switching.enumerate(l1))
         self.assertEqual(len(all_switchings), 4)
 
+    def test_long_trip(self):
+        f = Parr(Tens(Bot(),Bot()),Parr(Top(),Top()))
+        l = Linking(f, [(2, 5), (3, 6)])
+        s = Switching.special(l)
+        self.assertEqual(s.directions[0], True)
+        self.assertEqual(s.directions[1], False)
+        self.assertEqual(s.directions[4], True)
+        t = list(s.long_trip())
+        print(t)
+        self.assertTrue(s.long_trip_criterion())
+        self.assertFalse(s.stack_criterion())
+
+    def test_stack_criterion(self):
+        f = Parr(Tens(Bot(), Bot()), Parr(Top(), Top()))
+        l = Linking(f, [(2,6), (3,5)])
+        s = Switching.special(l)
+        self.assertTrue(s.stack_criterion())
+
+        f = Parr(Tens(Bot(), Bot()), Parr(Top(), Parr(Top(), Bot())))
+        l = Linking(f, [(3,5),(2,7),(8,7)])
+        s = Switching.special(l)
+        self.assertTrue(s.stack_criterion())
 

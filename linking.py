@@ -1,4 +1,4 @@
-
+from collections import defaultdict
 from formula import Bot, Top
 
 class Linking(object):
@@ -14,7 +14,14 @@ class Linking(object):
         self.formula = formula
         self.links = links
         self.forward = {a:b for a,b in links}
-        self.backward = {b:a for a,b in links}
+        self.backward = defaultdict(list)
+        for a, b in links:
+            self.backward[b].append(a)
+        for b in self.backward:
+            cur_list = self.backward[b]
+            smaller = [a for a in cur_list if a < b]
+            greater = [a for a in cur_list if b < a]
+            self.backward[b] = sorted(smaller) + sorted(greater, reverse=True)
 
     def syntactically_valid(self, strict=True):
         """
@@ -48,7 +55,9 @@ class Linking(object):
         else:
             return end < start or end >= start + len(start_formula)
 
-    def planar(self):
+    def stack_condition(self):
+        stack = []
+
         raise NotImplementedError()
 
     def is_symmetric_proof(self):
