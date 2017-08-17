@@ -80,7 +80,7 @@ class Switching(object):
             dct = {}
             for idx in parr_indices:
                 dct[idx] = (remainder % 2 == 1)
-                remainder // 2
+                remainder = remainder // 2
             yield cls(linking, dct)
 
 

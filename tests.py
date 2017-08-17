@@ -164,6 +164,13 @@ class LinkingTest(unittest.TestCase):
         self.assertFalse(l4.syntactically_valid(strict=True))
         self.assertTrue(l4.syntactically_valid(strict=False))
 
+    def test_symmetric_proof(self):
+        gadget = Parr(Top(), Parr(Top(),Tens(Bot(), Bot())))
+        three_proofs = Tens(gadget, gadget)
+        l = Linking(three_proofs, [(14, 2), (13, 4), (6, 11), (7, 9)])
+        self.assertFalse(l.is_symmetric_proof())
+
+
     def test_enumerate_linkings(self):
         f = Parr(Bot(),Top())
         self.assertEqual([l.links for l in Linking.enumerate(f)], [[(1,2)]])
@@ -216,6 +223,13 @@ class SwitchingTest(unittest.TestCase):
         f = Parr(Top(),Top())
         l3 = Linking(f, [])
         s = Switching(l3, {0:True})
+        self.assertFalse(s.acyclic_and_connected())
+
+    def test_incorrect(self):
+        gadget = Parr(Top(), Parr(Top(),Tens(Bot(), Bot())))
+        three_proofs = Tens(gadget, gadget)
+        l = Linking(three_proofs, [(14, 2), (13, 4), (6, 11), (7, 9)])
+        s = Switching(l, {1:False, 3:False, 8:True, 10:True})
         self.assertFalse(s.acyclic_and_connected())
 
     def test_enumerate_switchings(self):
