@@ -91,7 +91,7 @@ class ProofStepTest(unittest.TestCase):
         commutation = list(secondstep.commutes_with_previous(firststep, parent))
         self.assertEqual(commutation,
               [(firststep2, secondstep2)])
-             
+
 class ProofTest(unittest.TestCase):
     def test_neighbours(self):
         p1 = Proof().unit().unit()
@@ -184,6 +184,20 @@ class LinkingTest(unittest.TestCase):
         proofs = list(Linking.enumerate_symmetric_proofs(f))
         self.assertEqual(len(proofs), 2)
 
+    def test_enumerate_cyclic_proofs(self):
+        f = Parr(Top(), Top())
+        proofs = list(Linking.enumerate_cyclic_proofs(f))
+        self.assertEqual(proofs, [])
+
+        f = Parr(Bot(), Top())
+        proofs = list(Linking.enumerate_cyclic_proofs(f))
+        self.assertEqual(len(proofs), 1)
+
+        f = Parr(Tens(Bot(), Bot()), Parr(Top(), Top()))
+        proofs = list(Linking.enumerate_cyclic_proofs(f))
+        self.assertEqual(len(proofs), 1)
+
+
 class SwitchingTest(unittest.TestCase):
     def test_acyclic_and_connected(self):
         f = Parr(Tens(Bot(),Bot()),Parr(Top(),Top()))
@@ -218,7 +232,6 @@ class SwitchingTest(unittest.TestCase):
         self.assertEqual(s.directions[1], False)
         self.assertEqual(s.directions[4], True)
         t = list(s.long_trip())
-        print(t)
         self.assertTrue(s.long_trip_criterion())
         self.assertFalse(s.stack_criterion())
 
@@ -231,5 +244,13 @@ class SwitchingTest(unittest.TestCase):
         f = Parr(Tens(Bot(), Bot()), Parr(Top(), Parr(Top(), Bot())))
         l = Linking(f, [(3,5),(2,7),(8,7)])
         s = Switching.special(l)
-        self.assertTrue(s.stack_criterion())
+        # Here, the criterion fails! it does not work for units
+        self.assertFalse(s.stack_criterion())
+
+
+def load_tests(loader, tests, ignore):
+    import doctest
+    import diskpartition
+    tests.addTests(doctest.DocTestSuite(diskpartition))
+    return tests
 

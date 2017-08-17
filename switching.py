@@ -17,7 +17,7 @@ class Switching(object):
         """
         f = self.formula[current]
         yield current
-        
+
         neighbours = []
 
         parent_idx = self.parent_map.get(current)
@@ -50,6 +50,39 @@ class Switching(object):
         for neighbour in neighbours:
             if neighbour != coming_from:
                 yield from self.browse(neighbour, coming_from=current)
+
+    def acyclic_and_connected(self):
+        """
+        Is the switching acyclic and connected?
+        """
+        seen = set()
+        for index in self.browse():
+            if index in seen:
+                return False
+            seen.add(index)
+        return len(seen) == len(self.formula)
+
+    @classmethod
+    def enumerate(cls, linking, only_parr=True):
+        formula = linking.formula
+        valid_connectives = [Parr]
+        if not only_parr:
+            valid_connectives.append(Tens)
+        parr_indices = [
+            idx
+            for idx, subformula in enumerate(formula)
+            if any(isinstance(subformula, node)
+                    for node in valid_connectives)
+        ]
+        bound = pow(2, len(parr_indices))
+        for i in range(bound):
+            remainder = i
+            dct = {}
+            for idx in parr_indices:
+                dct[idx] = (remainder % 2 == 1)
+                remainder // 2
+            yield cls(linking, dct)
+
 
     def long_trip(self, cur_idx=0, cur_dir=True, coming_from=None):
         """
@@ -102,16 +135,6 @@ class Switching(object):
                 else: # back to the sender
                     yield from self.long_trip(coming_from, True, cur_idx)
 
-    def acyclic_and_connected(self):
-        """
-        Is the switching acyclic and connected?
-        """
-        seen = set()
-        for index in self.browse():
-            if index in seen:
-                return False
-            seen.add(index)
-        return len(seen) == len(self.formula)
 
     def long_trip_criterion(self):
         """
@@ -142,50 +165,22 @@ class Switching(object):
         previous_edge = None
         try:
             for a, b, d in self.long_trip():
-                print((a,b,d))
                 fa = self.formula[a]
                 if (b,a) == previous_edge:
-                    print('push')
-                    print(stack)
                     stack.append(fa)
                 else:
                     fa = self.formula[a]
                     if isinstance(fa, Parr) and not d: # traversing a Parr downwards
-                        print('pop')
-                        print(stack)
                         rhs = fa
                         top = stack.pop()
                         if rhs != top:
                             return False
 
                 previous_edge = (a,b)
-            print('final stack')
-            print(stack)
             return stack == [self.formula]
         except IndexError:
             return False
 
-
-    @classmethod
-    def enumerate(cls, linking, only_parr=True):
-        formula = linking.formula
-        valid_connectives = [Parr]
-        if not only_parr:
-            valid_connectives.append(Tens)
-        parr_indices = [
-            idx
-            for idx, subformula in enumerate(formula)
-            if any(isinstance(subformula, node)
-                    for node in valid_connectives)
-        ]
-        bound = pow(2, len(parr_indices))
-        for i in range(bound):
-            remainder = i
-            dct = {}
-            for idx in parr_indices:
-                dct[idx] = (remainder % 2 == 1)
-                remainder // 2
-            yield cls(linking, dct)
 
     @classmethod
     def special(cls, linking):
