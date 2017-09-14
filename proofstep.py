@@ -102,18 +102,38 @@ class MergeStep(ProofStep):
             b = parent_terms[p_first_merge]
             c = parent_terms[p_first_merge+1]
             target = self.terms[self.position]
-            for term,i1,j1,k1,l1 in b.possible_merges(c):
+            i1_orig, j1_orig, k1_orig, l1_orig = previous.coords
+            i2_orig, j2_orig, k2_orig, l2_orig = self.coords
+
+            
+            if self.position == previous.position:
+                first_merge_coords = (k1_orig, l1_orig, k2_orig, l2_orig)
+                i, j, k, l = first_merge_coords
+                term = b.merge(c, i, j, k, l)
+                second_merges = a.possible_merges(term)
+            else:
+                first_merge_coords = (i2_orig, j2_orig, i1_orig, j1_orig)
+                i, j, k, l = first_merge_coords
+                term = b.merge(c, i, j, k, l)
+                second_merges = term.possible_merges(a)
+
+            first_step = MergeStep(parent_terms[:p_first_merge] + (term,) + parent_terms[p_first_merge+2:],
+                    p_first_merge, first_merge_coords)
+
+            for candidate,i2,j2,k2,l2 in second_merges:
                 if self.position == previous.position:
-                    second_merges = a.possible_merges(term)
+                    if (i2,j2) != (i1_orig, j1_orig):
+                        continue
                 else:
-                    second_merges = term.possible_merges(a)
-                for candidate,i2,j2,k2,l2 in second_merges:
-                    if candidate == target:
-                        firststep = MergeStep(parent_terms[:p_first_merge] + (term,) +
-                                              parent_terms[p_first_merge+2:], p_first_merge,
-                                              (i1,j1,k1,l1))
-                        secondstep = MergeStep(self.terms, self.position, (i2,j2,k2,l2))
-                        yield (firststep, secondstep)
+                    if (k2,l2) != (k1_orig, k2_orig):
+                        continue
+
+                if candidate == target:
+                    firststep = MergeStep(parent_terms[:p_first_merge] + (term,) +
+                                          parent_terms[p_first_merge+2:], p_first_merge,
+                                          (i,j,k,l))
+                    secondstep = MergeStep(self.terms, self.position, (i2,j2,k2,l2))
+                    yield (firststep, secondstep)
 
     def number_of_premises(self):
         return 2
